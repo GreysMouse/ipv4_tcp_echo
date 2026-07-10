@@ -1,26 +1,24 @@
+#include "compat.h"
 #include "config.h"
 #include "msg.h"
-#include <arpa/inet.h>
-#include <netinet/in.h>
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/socket.h>
-#include <unistd.h>
 
-static int create_listen_socket(void)
+static sock_t create_listen_socket(void)
 {
-    int fd, opt;
+    sock_t fd;
+    sockopt_t opt;
     struct sockaddr_in addr;
 
-    if ((fd = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
-        return -1;
+    if ((fd = socket(AF_INET, SOCK_STREAM, 0)) == SOCK_INV) {
+        return SOCK_INV;
     };
 
     opt = 1;
 
-    if (setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) == -1) {
-        return -1;
+    if (setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) ==
+        SOCK_ERR) {
+        return SOCK_INV;
     }
 
     memset(&addr, 0, sizeof(addr));
@@ -29,18 +27,18 @@ static int create_listen_socket(void)
     addr.sin_port = htons(PORT);
     addr.sin_addr.s_addr = htonl(INADDR_ANY);
 
-    if (bind(fd, (const struct sockaddr *)&addr, sizeof(addr)) == -1) {
-        return -1;
+    if (bind(fd, (const struct sockaddr *)&addr, sizeof(addr)) == SOCK_ERR) {
+        return SOCK_INV;
     }
 
-    if (listen(fd, LISTENQ) == -1) {
-        return -1;
+    if (listen(fd, LISTENQ) == SOCK_ERR) {
+        return SOCK_INV;
     };
 
     return fd;
 }
 
-static void handle_connection(int fd, const struct sockaddr_in *addr)
+static void handle_connection(sock_t fd, const struct sockaddr_in *addr)
 {
     in_port_t port;
     size_t msg_len;
@@ -71,36 +69,41 @@ static void handle_connection(int fd, const struct sockaddr_in *addr)
 
 int main(void)
 {
-    int s_fd;
+    sock_t s_fd;
 
-    if ((s_fd = create_listen_socket()) == -1) {
-        perror("Listen socket");
+    if (sock_setup() != 0) {
+        fprintf(stderr, "[sock_setup]: error");
+        exit(EXIT_FAILURE);
+    }
+
+    if ((s_fd = create_listen_socket()) == SOCK_INV) {
+        sock_perror("Listen socket");
         exit(EXIT_FAILURE);
     };
 
-    for (;;) {
-        int c_fd;
-        struct sockaddr_in c_addr;
-        socklen_t c_addr_len;
-        pid_t p_id;
+    // for (;;) {
+    //     sock_t c_fd;
+    //     struct sockaddr_in c_addr;
+    //     socklen_t c_addr_len;
+    //     pid_t p_id;
 
-        c_addr_len = sizeof(c_addr);
-        c_fd = accept(s_fd, (struct sockaddr *)&c_addr, &c_addr_len);
+    //     c_addr_len = sizeof(c_addr);
+    //     c_fd = accept(s_fd, (struct sockaddr *)&c_addr, &c_addr_len);
 
-        if (c_fd == -1) {
-            perror("Connected socket");
-            continue;
-        };
+    //     if (c_fd == SOCK_INV) {
+    //         sock_perror("Connected socket");
+    //         continue;
+    //     };
 
-        if ((p_id = fork()) == 0) {
-            close(s_fd);
-            handle_connection(c_fd, &c_addr);
-            close(c_fd);
-            exit(EXIT_SUCCESS);
-        };
+    //     if ((p_id = fork()) == 0) {
+    //         sock_close(s_fd);
+    //         handle_connection(c_fd, &c_addr);
+    //         sock_close(c_fd);
+    //         exit(EXIT_SUCCESS);
+    //     };
 
-        close(c_fd);
-    };
+    //     sock_close(c_fd);
+    // };
 
     return EXIT_SUCCESS;
 }

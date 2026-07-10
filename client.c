@@ -1,16 +1,12 @@
+#include "compat.h"
 #include "config.h"
 #include "msg.h"
-#include <arpa/inet.h>
-#include <netinet/in.h>
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/socket.h>
-#include <unistd.h>
 
 int main(int argc, char **argv)
 {
-    int fd;
+    sock_t fd;
     struct sockaddr_in addr;
     char msg[256];
     size_t msg_len;
@@ -20,8 +16,8 @@ int main(int argc, char **argv)
         exit(EXIT_FAILURE);
     }
 
-    if ((fd = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
-        perror("Socket");
+    if ((fd = socket(AF_INET, SOCK_STREAM, 0)) == SOCK_INV) {
+        sock_perror("Socket");
         exit(EXIT_FAILURE);
     }
 
@@ -35,8 +31,9 @@ int main(int argc, char **argv)
         exit(EXIT_FAILURE);
     };
 
-    if ((connect(fd, (const struct sockaddr *)&addr, sizeof(addr))) == -1) {
-        perror("Connect");
+    if ((connect(fd, (const struct sockaddr *)&addr, sizeof(addr))) ==
+        SOCK_ERR) {
+        sock_perror("Connect");
         exit(EXIT_FAILURE);
     }
 
@@ -57,7 +54,7 @@ int main(int argc, char **argv)
 
         printf("%s\n", msg);
     }
-    close(fd);
+    sock_close(fd);
 
     return EXIT_SUCCESS;
 }

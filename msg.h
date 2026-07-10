@@ -1,15 +1,12 @@
-#include <arpa/inet.h>
-#include <errno.h>
-#include <netinet/in.h>
-#include <stdint.h>
-#include <stdio.h>
-#include <sys/socket.h>
-#include <unistd.h>
+#ifndef _MSG_H
+#define _MSG_H
+
+#include "compat.h"
 
 /* Writes len bytes to fd. Returns number of written chars.
  * Message in buf must be null-terminated.
  */
-static size_t push_msg(int fd, const char *buf, size_t len)
+static size_t push_msg(sock_t fd, const char *buf, size_t len)
 {
     size_t r;
     ssize_t n;
@@ -17,7 +14,7 @@ static size_t push_msg(int fd, const char *buf, size_t len)
     r = len;
 
     while (r) {
-        n = write(fd, buf, r);
+        n = send(fd, buf, r, 0);
 
         if (n <= 0 && errno != EINTR) {
             break;
@@ -31,13 +28,13 @@ static size_t push_msg(int fd, const char *buf, size_t len)
 /* Reads null-terminated message into buf of size len.
  * Returns the number of bytes read (null-terminator included).
  */
-static size_t pull_msg(int fd, char *buf, size_t len)
+static size_t pull_msg(sock_t fd, char *buf, size_t len)
 {
     size_t acc;
     ssize_t n, i;
 
     for (acc = 0; acc < len; acc += n) {
-        n = read(fd, buf + acc, len - acc);
+        n = recv(fd, buf + acc, len - acc, 0);
 
         if (n <= 0 && errno != EINTR) {
             break;
@@ -51,3 +48,5 @@ static size_t pull_msg(int fd, char *buf, size_t len)
     }
     return acc;
 }
+
+#endif

@@ -1,4 +1,5 @@
-CFLAGS = -Wall -Wextra -Wpedantic -std=c99 -O2
+OLEVEL = -O2
+CFLAGS = -Wall -Wextra -Wpedantic -std=c99 $(OLEVEL)
 
 ifeq ($(TARGET), windows)
     CC = x86_64-w64-mingw32-gcc
@@ -21,7 +22,7 @@ SERVER_TARGET = server$(EXT)
 
 all: $(BIN_DIR)/$(CLIENT_TARGET) $(BIN_DIR)/$(SERVER_TARGET)
 
-debug: CFLAGS += -ggdb
+debug: CFLAGS := $(filter-out $(OLEVEL), $(CFLAGS)) -ggdb
 debug: all
 
 $(BIN_DIR)/%$(EXT): $(OBJ_DIR)/%.o | $(BIN_DIR)

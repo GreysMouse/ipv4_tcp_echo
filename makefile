@@ -25,10 +25,10 @@ all: $(BIN_DIR)/$(CLIENT_TARGET) $(BIN_DIR)/$(SERVER_TARGET)
 debug: CFLAGS := $(filter-out $(OLEVEL), $(CFLAGS)) -ggdb
 debug: all
 
-$(BIN_DIR)/%$(EXT): $(OBJ_DIR)/%.o | $(BIN_DIR)
-	$(CC) $< -o $@ $(LIBS)
+$(BIN_DIR)/%$(EXT): $(OBJ_DIR)/%.o $(OBJ_DIR)/compat.o $(OBJ_DIR)/msg.o | $(BIN_DIR)
+	$(CC) $^ -o $@ $(LIBS)
 
-$(OBJ_DIR)/%.o: %.c msg.h compat.h config.h | $(OBJ_DIR)
+$(OBJ_DIR)/%.o: %.c config.h | $(OBJ_DIR)
 	$(CC) $(CFLAGS) -c $< -o $@
 
 $(OBJ_DIR) $(BIN_DIR):

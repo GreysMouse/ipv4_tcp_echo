@@ -8,6 +8,7 @@ int main(int argc, char **argv)
 {
     sock_t fd;
     struct sockaddr_in addr;
+    int res;
     char msg[256];
     size_t msg_len;
 
@@ -16,8 +17,13 @@ int main(int argc, char **argv)
         exit(EXIT_FAILURE);
     }
 
+    if ((res = sock_setup()) != 0) {
+        num_perror("[sock_setup]", res);
+        exit(EXIT_FAILURE);
+    }
+
     if ((fd = socket(AF_INET, SOCK_STREAM, 0)) == SOCK_INV) {
-        sock_perror("Socket");
+        sock_perror("[socket]");
         exit(EXIT_FAILURE);
     }
 
@@ -27,13 +33,13 @@ int main(int argc, char **argv)
     addr.sin_port = htons(PORT);
 
     if (inet_pton(AF_INET, argv[1], &addr.sin_addr) != 1) {
-        fprintf(stderr, "Invalid address\n");
+        fprintf(stderr, "[inet_pton]: Invalid address\n");
         exit(EXIT_FAILURE);
     };
 
     if ((connect(fd, (const struct sockaddr *)&addr, sizeof(addr))) ==
         SOCK_ERR) {
-        sock_perror("Connect");
+        sock_perror("[connect]");
         exit(EXIT_FAILURE);
     }
 
@@ -45,7 +51,7 @@ int main(int argc, char **argv)
 
     for (;;) {
         if (fgets(msg, sizeof(msg), stdin) == NULL) {
-            fprintf(stderr, "Nothing was read from stdin\n");
+            fprintf(stderr, "[fgets]: Nothing was read from stdin\n");
             break;
         };
 
@@ -54,6 +60,7 @@ int main(int argc, char **argv)
 
         printf("%s\n", msg);
     }
+
     sock_close(fd);
 
     return EXIT_SUCCESS;

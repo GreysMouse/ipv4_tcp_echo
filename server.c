@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+/* Cannot return -1 on error because of compatibility with _WIN32 */
 static sock_t create_listen_socket(void)
 {
     sock_t fd;
@@ -69,15 +70,16 @@ static void handle_connection(sock_t fd, const struct sockaddr_in *addr)
 
 int main(void)
 {
+    int res;
     sock_t s_fd;
 
-    if (sock_setup() != 0) {
-        fprintf(stderr, "[sock_setup]: error");
+    if ((res = sock_setup()) != 0) {
+        num_perror("[sock_setup]", res);
         exit(EXIT_FAILURE);
     }
 
     if ((s_fd = create_listen_socket()) == SOCK_INV) {
-        sock_perror("Listen socket");
+        sock_perror("[create_listen_socket]");
         exit(EXIT_FAILURE);
     };
 
@@ -104,6 +106,13 @@ int main(void)
 
     //     sock_close(c_fd);
     // };
+
+    sock_close(s_fd);
+
+    if ((res = sock_destroy()) != 0) {
+        sock_perror("[sock_destroy]");
+        exit(EXIT_FAILURE);
+    }
 
     return EXIT_SUCCESS;
 }

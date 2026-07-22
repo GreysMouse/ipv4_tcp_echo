@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 #include <stdio.h>
+#include <string.h>
 
 #ifndef _WIN32
 
@@ -18,11 +19,18 @@
 typedef int sock_t;
 typedef int sockopt_t;
 
-static int sock_setup(void) { return 0; }
+static inline void num_perror(const char *s, int errnum)
+{
+    fprintf(stderr, "%s: %s\n", s, strerror(errnum));
+}
 
-static int sock_close(sock_t fd) { return close(fd); }
+static inline void sock_perror(const char *s) { perror(s); }
 
-static void sock_perror(const char *s) { perror(s); }
+static inline int sock_setup(void) { return 0; }
+
+static inline int sock_destroy(void) { return 0; }
+
+static inline int sock_close(sock_t fd) { return close(fd); }
 
 #else
 
@@ -39,34 +47,23 @@ typedef SOCKET sock_t;
 typedef char sockopt_t;
 typedef uint16_t in_port_t;
 
-static int sock_setup(void)
+void num_perror(const char *s, int errnum);
+
+static inline void sock_perror(const char *s)
+{
+    num_perror(s, WSAGetLastError());
+}
+
+static inline int sock_setup(void)
 {
     WSADATA data;
 
     return WSAStartup(MAKEWORD(2, 2), &data);
 }
 
-static int sock_close(sock_t fd) { return closesocket(fd); }
+static inline int sock_destroy(void) { return WSACleanup(); }
 
-static void sock_perror(const char *s)
-{
-    int err;
-    LPSTR msg;
-    DWORD len;
-
-    err = WSAGetLastError();
-    len = FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER |
-                            FORMAT_MESSAGE_FROM_SYSTEM |
-                            FORMAT_MESSAGE_IGNORE_INSERTS,
-                        NULL, (DWORD)err, 0, (LPSTR)&msg, 0, NULL);
-
-    if (len == 0) {
-        fprintf(stderr, "%s: error code %d\n", s, err);
-    } else {
-        fprintf(stderr, "%s: %s\n", s, msg);
-        LocalFree(msg);
-    }
-}
+static inline int sock_close(sock_t fd) { return closesocket(fd); }
 
 #endif
 
